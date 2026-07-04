@@ -15,9 +15,12 @@ Windows (probes included) open here unchanged, and vice versa.
   circuit (1–2.2–4.7 ladder, state carries through).
 - **Oscilloscope**: rolling traces, range-based autoscale on a 1-2-5 ladder, 20 ms / 0.2 s /
   2 s windows, probes placeable before or during a run, saved into the file.
-- **AC analysis core**: `CircuitSimulator.solveAc(frequency:)` — complex MNA over the same
-  topology (the Bode window UI is the next step).
-- **Netlist + ERC**, cross-probing highlight of the selected wire's net, SVG export in core.
+- **AC analysis with Bode plots**: the AC toolbar button sweeps 1 Hz – 100 kHz over the
+  voltage probes and opens a window with log-log magnitude and phase — one complex MNA
+  solve per frequency point over the same topology as the transient engine.
+- **Exporters**: handwritten DXF R12 and SVG (Export menu in the toolbar), identical
+  conventions to the Windows editor.
+- **Netlist + ERC**, cross-probing highlight of the selected wire's net.
 
 ## Building
 
@@ -32,7 +35,12 @@ Pick the **SchematicApp** scheme and run. Or from the terminal:
 ```sh
 swift run SchematicApp    # launch the editor
 swift test                # analytic verification suite
+./make-app.sh             # assemble a proper SchematicApp.app bundle
 ```
+
+Running as a bare SPM executable works but logs harmless bundle-related console noise;
+`make-app.sh` builds a release binary and wraps it into a signed (ad-hoc) `.app` with a
+bundle identifier, which silences the noise and gives the editor a Dock presence.
 
 ## The verification story
 

@@ -322,6 +322,87 @@ final class EditorController: ObservableObject {
         undo.push(SetPropertiesCommand(sym, refDes: refDes, value: value))
     }
 
+    // MARK: - AC analysis
+
+    /// Frequency sweep over all voltage probes for the Bode plot. Uses the running simulator
+    /// when available (so switch and diode states match what is on screen), otherwise builds
+    /// a temporary one.
+    func runAcAnalysis() {
+        let voltageProbes = probes.filter { !$0.isCurrent }
+        guard !voltageProbes.isEmpty else {
+            status = "Place at least one voltage probe first."
+            return
+        }
+
+        var sim = simulator
+        if sim == nil {
+            var problems: [String] = []
+            sim = CircuitSimulator.build(document, netlist, problems: &problems)
+            if sim == nil {
+                status = problems.joined(separator: " ")
+                return
+            }
+        }
+        guard let sim else { return }
+
+        let fMin = 1.0
+        let fMax = 100e3
+        let pointsPerDecade = 48
+        let decades = Int(ceil(log10(fMax / fMin)))
+        let count = decades * pointsPerDecade + 1
+        let freq = (0..<count).map { fMin * pow(10, Double($0) / Double(pointsPerDecade)) }
+
+        let nodes = voltageProbes.map { sim.resolveNode($0.anchor) ?? -1 }
+        var data = voltageProbes.map { _ in [Complex](repeating: .zero, count: count) }
+
+        do {
+            for i in 0..<count {
+                let x = try sim.solveAc(frequency: freq[i])
+                for k in 0..<voltageProbes.count where nodes[k] >= 0 {
+                    data[k][i] = sim.acNodeVoltage(x, nodes[k])
+                }
+            }
+        } catch let error as SimulationError {
+            status = error.message
+            return
+        } catch {
+            status = "AC analysis failed."
+            return
+        }
+
+        let traces = voltageProbes.enumerated().map { (k, p) in
+            (label: p.label, color: p.color, freq: freq, response: data[k])
+        }
+        BodeWindowPresenter.present(traces: traces)
+        status = "AC analysis: \(count) points, \(voltageProbes.count) trace(s)."
+    }
+
+    // MARK: - Export
+
+    func exportDxf() {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "schematic.dxf"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try DxfExporter.export(document, to: url)
+            status = "Exported \(url.lastPathComponent)."
+        } catch {
+            status = "DXF export failed: \(error.localizedDescription)"
+        }
+    }
+
+    func exportSvg() {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "schematic.svg"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try SvgExporter.export(document).data(using: .utf8)!.write(to: url)
+            status = "Exported \(url.lastPathComponent)."
+        } catch {
+            status = "SVG export failed: \(error.localizedDescription)"
+        }
+    }
+
     func ercReport() -> String {
         let issues = ErcChecker.check(document, netlist)
         if issues.isEmpty { return "ERC: no issues." }

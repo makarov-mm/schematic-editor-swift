@@ -109,6 +109,14 @@ struct ContentView: View {
                 ercText = controller.ercReport()
                 showErc = true
             }
+            Button("AC", systemImage: "waveform.path.ecg") { controller.runAcAnalysis() }
+                .disabled(!controller.probesExist)
+            Menu {
+                Button("Export DXF\u{2026}") { controller.exportDxf() }
+                Button("Export SVG\u{2026}") { controller.exportSvg() }
+            } label: {
+                Label("Export", systemImage: "square.and.arrow.up")
+            }
             Button("Fit", systemImage: "arrow.up.left.and.arrow.down.right") { controller.zoomToFitRequested?() }
         }
         ToolbarItemGroup {
@@ -159,8 +167,9 @@ struct ContentView: View {
     private var statusBar: some View {
         HStack {
             if controller.isRunning {
-                Text(String(format: "Running   t %.3f s", controller.simTime))
-                    .font(.system(size: 11, design: .monospaced))
+                Text("Running")
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(.green)
             }
             Text(controller.status)
                 .font(.system(size: 11))
