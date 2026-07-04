@@ -4,6 +4,10 @@ A native macOS port of my C#/WPF schematic editor: Swift + AppKit/SwiftUI, zero 
 dependencies, sharing the exact same `.schem.json` file format — schematics created on
 Windows (probes included) open here unchanged, and vice versa.
 
+## Screenshot
+
+![Screenshot](screenshot.png)
+
 ## What works
 
 - **Editing**: symbol palette (IEC 60617), placement with rotate (`R`) / mirror (`M`),
